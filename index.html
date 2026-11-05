@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>FacturaTK</title>
+<meta name="theme-color" content="#0B0D10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FacturaTK">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icono-180.png">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{--fondo:#0B0D10;--panel:#15181D;--borde:#262B33;--texto:#F2F4F7;--suave:#9AA3B2;--acento:#E63946;--ok:#2FBF71;--alerta:#F2A93B;--error:#E05252;--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--fondo);color:var(--texto);font:15px/1.4 -apple-system,"SF Pro Text",Inter,Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+#app{min-height:100dvh;display:flex;flex-direction:column}
+.pantalla{display:flex;flex-direction:column;min-height:100dvh;padding-top:var(--sat)}
+.barra{display:flex;align-items:center;gap:8px;padding:14px 16px 10px}
+.barra h1{font-size:18px;font-weight:600;letter-spacing:-.2px;margin:0;flex:1}
+.contenido{flex:1;padding:4px 16px 24px}
+.pie{padding:10px 16px calc(12px + var(--sab));display:flex;gap:10px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--fondo) 30%)}
+h2{font-size:24px;font-weight:700;letter-spacing:-.5px;margin:0 0 4px}
+h3{font-size:16px;font-weight:600;margin:0 0 6px}
+p{margin:0 0 10px}
+.suave{color:var(--suave);font-size:13px}
+.centro{text-align:center}
+.icon{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 16px;border-radius:10px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);font:inherit;font-weight:600;width:100%;cursor:pointer}
+.btn:disabled{opacity:.5}
+.btn.primario{background:var(--acento);border-color:var(--acento);color:#fff}
+.btn.texto{background:none;border:none;color:var(--suave);height:40px;font-weight:500}
+.btn.chico{height:36px;width:auto;padding:0 12px;font-size:13px}
+.btn .icon{width:20px;height:20px}
+a.btn{text-decoration:none}
+.campo{display:block;margin-bottom:12px}
+.campo span{display:block;font-size:12px;color:var(--suave);margin-bottom:4px}
+.campo.revisar span{color:var(--alerta)}
+.campo.revisar input{border-color:var(--alerta)}
+input,select{width:100%;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);font:inherit;outline:none}
+input:focus{border-color:var(--acento)}
+.error{color:var(--error);font-size:13px;margin:6px 0 10px}
+.card{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:14px;margin-bottom:8px}
+.ticket{display:flex;gap:12px;align-items:center;cursor:pointer}
+.ticket .ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none}
+.ticket .ico .icon{width:20px;height:20px}
+.ticket .cuerpo{flex:1;min-width:0}
+.fila{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.nombre,.total{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.estado{font-size:12px;font-weight:600}
+.sub{font-size:12px;color:var(--suave);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vacio{display:flex;flex-direction:column;align-items:center;gap:10px;padding:60px 0;color:var(--suave);text-align:center}
+.vacio .icon{width:36px;height:36px}
+.foto{width:100%;max-height:300px;object-fit:contain;background:#000;border-radius:12px;border:1px solid var(--borde);display:block}
+.dato{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--borde)}
+.dato:last-child{border-bottom:0}
+.dato .k{font-size:12px;color:var(--suave);width:92px;flex:none}
+.dato .v{flex:1;font-weight:600;word-break:break-all}
+.dato .v.baja{color:var(--alerta)}
+.dato .cp{background:none;border:1px solid var(--borde);color:var(--texto);border-radius:8px;height:32px;padding:0 10px;font:inherit;font-size:12px;font-weight:600}
+.paso{display:flex;gap:12px;margin-bottom:14px}
+.paso .n{width:26px;height:26px;border-radius:50%;background:var(--panel);border:1px solid var(--borde);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.paso.hecho .n{background:var(--ok);border-color:var(--ok);color:#fff}
+.paso .t{flex:1}
+.mes{display:flex;align-items:center;justify-content:space-between;padding:4px 0 10px}
+.mes button{background:none;border:none;color:var(--suave);width:36px;height:36px;font-size:22px}
+.monto{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.punto{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.enlaces a{color:var(--texto);font-weight:600;margin-left:14px;text-decoration:none;font-size:13px}
+.aviso{position:fixed;left:16px;right:16px;top:calc(12px + var(--sat));background:#22262D;border:1px solid var(--borde);border-radius:10px;padding:12px 14px;font-size:14px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:giro .8s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes giro{to{transform:rotate(360deg)}}
+.divisor{border:0;border-top:1px solid var(--borde);margin:16px 0}
+.nota{border:1px dashed var(--borde);border-radius:12px;padding:12px 14px;margin:8px 0 12px;font-size:13px;color:var(--suave)}
+.hoja{position:fixed;inset:auto 0 0;background:var(--panel);border-top:1px solid var(--borde);border-radius:16px 16px 0 0;padding:20px 16px calc(16px + var(--sab));z-index:10}
+.fondo-hoja{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9}
+</style>
+</head>
+<body>
+<div id="app"><div class="vacio" style="padding-top:40vh"><span class="spinner"></span></div></div>
+<div id="aviso" class="aviso" hidden></div>
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const app = $('#app');
+const E = { clave: localStorage.getItem('gemini_key') || '', modelo: localStorage.getItem('gemini_modelo') || 'gemini-2.5-flash', perfil: null, tickets: [], portales: {}, pantalla: null };
+// Directorio semilla de portales (dominios oficiales conocidos; confirma la primera vez que lo uses y la app lo recuerda)
+const SEMILLA = {
+  'WALMART': { nombre: 'Walmart / Bodega Aurrera / Sam\'s', url: 'https://facturacion.walmartmexico.com.mx/', alias: ['WALMART','WAL MART','BODEGA AURRERA','AURRERA','SAMS CLUB','SAM S CLUB','SUPERAMA','WALMART EXPRESS'], verificado: false },
+  'OXXO': { nombre: 'OXXO', url: 'https://factura.oxxo.com/', alias: ['OXXO','CADENA COMERCIAL OXXO'], verificado: false },
+  'SORIANA': { nombre: 'Soriana', url: 'https://facturacion.soriana.com/', alias: ['SORIANA','MEGA SORIANA','SORIANA HIPER','CITY CLUB'], verificado: false },
+  'COSTCO': { nombre: 'Costco', url: 'https://facturacion.costco.com.mx/', alias: ['COSTCO'], verificado: false },
+  'HOME DEPOT': { nombre: 'The Home Depot', url: 'https://www.homedepot.com.mx/ayuda-facturacion-electronica', alias: ['HOME DEPOT','THE HOME DEPOT'], verificado: false },
+  '7 ELEVEN': { nombre: '7-Eleven', url: 'https://www.7-eleven.com.mx/', alias: ['7 ELEVEN','7ELEVEN','SEVEN ELEVEN'], verificado: false },
+};
+
+// ---------- iconos propios ----------
+const I = {
+  camara:'<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.1l1.2-2h6.4l1.2 2h1.1A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.2"/>',
+  galeria:'<rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.5"/><path d="M20 15l-4.5-4.5L8 18"/>',
+  ticket:'<path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  factura:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M9.5 14.5l2 2 3.5-4"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  alerta:'<path d="M12 4l8.5 15h-17z"/><path d="M12 10v4M12 16.5v.5"/>',
+  reloj:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  atras:'<path d="M14 6l-6 6 6 6"/>',
+  descarga:'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19h14"/>',
+  pdf:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M9.5 17v-5h1.6a1.4 1.4 0 0 1 0 2.8H9.5"/>',
+  persona:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.2-3.3 3.7-5 7-5s5.8 1.7 7 5"/>',
+  enlace:'<path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"/>',
+  copiar:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M6 15H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 4h8A1.5 1.5 0 0 1 14.5 5.5V6"/>',
+  xml:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13l-1.5 2 1.5 2M14 13l1.5 2-1.5 2"/>',
+  ajustes:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/>',
+};
+const ico = (n, c = '') => `<svg class="icon ${c}" viewBox="0 0 24 24">${I[n]}</svg>`;
+const ESTADOS = { nuevo:['Leyendo','var(--suave)','reloj'], revisar:['Revisa datos','var(--alerta)','alerta'], listo:['Listo para facturar','var(--alerta)','enlace'], facturado:['Facturado','var(--ok)','check'], error:['Error','var(--error)','alerta'] };
+const fmt = new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN' });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const aviso = (m, ms = 3000) => { const a = $('#aviso'); a.textContent = m; a.hidden = false; clearTimeout(a._t); a._t = setTimeout(() => a.hidden = true, ms); };
+const render = (html, n) => { E.pantalla = n; app.innerHTML = html; window.scrollTo(0, 0); $('#aviso').hidden = true; };
+const barra = (t, { atras, acciones = '' } = {}) => `<div class="barra">${atras ? `<button class="btn texto chico" data-atras>${ico('atras')}</button>` : ''}<h1>${esc(t)}</h1>${acciones}</div>`;
+const copiar = async (v) => { try { await navigator.clipboard.writeText(v); aviso('Copiado'); } catch { aviso('No se pudo copiar; selecciona el texto'); } };
+const normaliza = s => String(s || '').toUpperCase().replace(/[^A-Z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+// ---------- almacenamiento local (IndexedDB) ----------
+const BD = (() => {
+  let p;
+  const abrir = () => p || (p = new Promise((res, rej) => { const r = indexedDB.open('facturatk', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('kv'); d.createObjectStore('tickets', { keyPath: 'id' }); d.createObjectStore('portales', { keyPath: 'clave' }); d.createObjectStore('archivos'); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const tx = async (st, modo, fn) => { const d = await abrir(); return new Promise((res, rej) => { const t = d.transaction(st, modo); const s = t.objectStore(st); const q = fn(s); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+  return {
+    get: (st, k) => tx(st, 'readonly', s => s.get(k)), put: (st, v, k) => tx(st, 'readwrite', s => k === undefined ? s.put(v) : s.put(v, k)),
+    del: (st, k) => tx(st, 'readwrite', s => s.delete(k)), all: (st) => tx(st, 'readonly', s => s.getAll()),
+  };
+})();
+const urlArchivo = async (k) => { if (!k) return null; const b = await BD.get('archivos', k); return b ? URL.createObjectURL(b) : null; };
+
+// ---------- Gemini (tu propia clave, llamada directa desde el navegador) ----------
+const b64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+async function gemini(prompt, imagen) {
+  if (!E.clave) throw new Error('Falta tu clave de Gemini: ve a Ajustes');
+  const parts = [];
+  if (imagen) parts.push({ inline_data: { mime_type: imagen.type || 'image/jpeg', data: await b64(imagen) } });
+  parts.push({ text: prompt });
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${E.modelo}:generateContent?key=${encodeURIComponent(E.clave)}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts }], generationConfig: { response_mime_type: 'application/json', temperature: 0 } }) });
+  if (!r.ok) { let m = `Gemini respondió ${r.status}`; try { m = (await r.json()).error?.message || m; } catch {} if (r.status === 400 || r.status === 403) m = 'Clave de Gemini inválida o sin permiso: revísala en Ajustes'; if (r.status === 429) m = 'Límite de Gemini alcanzado; espera un momento'; throw new Error(m); }
+  const j = await r.json(); const txt = j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+  try { return JSON.parse(txt); } catch { const m = txt.match(/\{[\s\S]*\}/); if (m) return JSON.parse(m[0]); throw new Error('Gemini no devolvió datos legibles; intenta otra foto'); }
+}
+
+// ---------- arranque ----------
+async function arrancar() {
+  if (!window.indexedDB) { render(`<div class="pantalla"><div class="vacio">${ico('alerta')}<b>Este navegador no permite guardar datos</b></div></div>`, 'sin'); return; }
+  E.perfil = (await BD.get('kv', 'perfil')) || null;
+  E.tickets = ((await BD.all('tickets')) || []).sort((a, b) => b.creado - a.creado);
+  for (const t of E.tickets) { t.imagen_url = await urlArchivo(t.imagen); if (t.factura) { t.factura.xml_url = await urlArchivo(t.factura.xml); t.factura.pdf_url = await urlArchivo(t.factura.pdf); } }
+  E.portales = { ...SEMILLA }; for (const p of (await BD.all('portales')) || []) E.portales[p.clave] = p;
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (!E.clave) { pantallaAjustes(true); return; }
+  E.perfil ? pantallaInicio() : pantallaPerfil();
+}
+
+// ---------- ajustes (clave de Gemini) ----------
+function pantallaAjustes(primera = false) {
+  render(`<div class="pantalla">${barra('Ajustes', { atras: !primera })}<div class="contenido">
+    ${primera ? `<h2>FacturaTK</h2><p class="suave">Toma la foto del ticket y la app lee los datos, te abre el portal de facturación y guarda tus facturas. Todo queda en este navegador; no hay servidor.</p><hr class="divisor">` : ''}
+    <h3>Clave de Gemini</h3>
+    <p class="suave">La lectura de tickets usa la API de Google Gemini con tu propia clave (tiene un nivel gratuito). Créala en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--texto)">aistudio.google.com/apikey</a> y pégala aquí. Se guarda solo en este navegador.</p>
+    <form id="f"><label class="campo"><span>Clave (API key)</span><input name="clave" value="${esc(E.clave)}" autocomplete="off" spellcheck="false"></label>
+    <label class="campo"><span>Modelo</span><select name="modelo"><option value="gemini-2.5-flash" ${E.modelo === 'gemini-2.5-flash' ? 'selected' : ''}>gemini-2.5-flash (rápido, recomendado)</option><option value="gemini-2.5-pro" ${E.modelo === 'gemini-2.5-pro' ? 'selected' : ''}>gemini-2.5-pro (más preciso, más lento)</option></select></label>
+    <div class="error" id="err" hidden></div><button class="btn primario" type="submit">Guardar</button></form>
+    <hr class="divisor"><h3>Datos</h3>
+    <p class="suave">${E.tickets.length} tickets guardados en este navegador. Exporta un respaldo de vez en cuando.</p>
+    <button class="btn" id="exportar">${ico('descarga')}Exportar respaldo (ZIP)</button>
+    <div style="height:8px"></div><label class="btn">${ico('galeria')}Restaurar respaldo<input type="file" accept=".zip" hidden id="restaurar"></label>
+    <div style="height:8px"></div><button class="btn texto" id="borrartodo">Borrar todos los datos de este navegador</button>
+  </div></div>`, 'ajustes');
+  if (!primera) $('[data-atras]').onclick = () => E.perfil ? pantallaInicio() : pantallaPerfil();
+  $('#f').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); const k = fd.get('clave').trim();
+    if (!k) { $('#err').textContent = 'Pega la clave'; $('#err').hidden = false; return; }
+    E.clave = k; E.modelo = fd.get('modelo'); localStorage.setItem('gemini_key', k); localStorage.setItem('gemini_modelo', E.modelo);
+    const b = e.target.querySelector('button'); b.disabled = true; b.innerHTML = '<span class="spinner"></span> Probando la clave...';
+    try { await gemini('Responde solo con el JSON {"ok":true}'); aviso('Clave guardada'); E.perfil ? pantallaInicio() : pantallaPerfil(); }
+    catch (err) { $('#err').textContent = err.message; $('#err').hidden = false; b.disabled = false; b.textContent = 'Guardar'; } };
+  $('#exportar').onclick = () => exportarRespaldo();
+  $('#restaurar').onchange = e => restaurarRespaldo(e.target.files[0]);
+  $('#borrartodo').onclick = () => confirmarHoja('Borrar todo', 'Se eliminan perfil, tickets, facturas y portales guardados en este navegador.', async () => { indexedDB.deleteDatabase('facturatk'); localStorage.clear(); location.reload(); });
+}
+function descargarBlob(blob, nombre) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+async function exportarRespaldo() {
+  const zip = new JSZip(); const datos = { perfil: E.perfil, tickets: E.tickets.map(({ imagen_url, factura, ...t }) => ({ ...t, factura: factura ? (({ xml_url, pdf_url, ...f }) => f)(factura) : null })), portales: Object.values(E.portales).filter(p => p.clave) };
+  zip.file('datos.json', JSON.stringify(datos));
+  for (const t of E.tickets) for (const k of [t.imagen, t.factura?.xml, t.factura?.pdf]) if (k) { const b = await BD.get('archivos', k); if (b) zip.file('archivos/' + k, b); }
+  descargarBlob(await zip.generateAsync({ type: 'blob' }), `facturatk-respaldo-${new Date().toISOString().slice(0, 10)}.zip`);
+}
+async function restaurarRespaldo(f) {
+  if (!f) return;
+  try { const zip = await JSZip.loadAsync(f); const datos = JSON.parse(await zip.file('datos.json').async('string'));
+    if (datos.perfil) await BD.put('kv', datos.perfil, 'perfil');
+    for (const t of datos.tickets || []) await BD.put('tickets', t);
+    for (const p of datos.portales || []) await BD.put('portales', p);
+    const arch = zip.folder('archivos'); if (arch) for (const [n, e] of Object.entries(zip.files)) if (n.startsWith('archivos/') && !e.dir) await BD.put('archivos', await e.async('blob'), n.slice(9));
+    aviso('Respaldo restaurado'); setTimeout(() => location.reload(), 800);
+  } catch (e) { aviso('No se pudo restaurar: ' + e.message, 5000); }
+}
+
+// ---------- perfil fiscal (Constancia) ----------
+function pantallaPerfil() {
+  const p = E.perfil || {};
+  const campo = (n, et, tipo = 'text') => `<label class="campo" data-campo="${n}"><span>${et}</span><input name="${n}" type="${tipo}" value="${esc(p[n] || '')}"></label>`;
+  render(`<div class="pantalla">${barra('Tu perfil fiscal', { atras: !!E.perfil, acciones: `<button class="btn texto chico" id="btnajustes">Ajustes</button>` })}<div class="contenido">
+    <p class="suave">Sube tu Constancia de Situación Fiscal (PDF, o una foto de su primera página) y la app la lee por ti. Solo lo haces una vez.</p>
+    <label class="btn" id="btnc">${ico('pdf')}<span>Leer constancia (PDF o foto)</span><input type="file" accept="application/pdf,image/*" hidden></label>
+    <hr class="divisor">
+    <form id="f">${campo('rfc','RFC')}${campo('razon_social','Nombre o razón social')}${campo('codigo_postal','Código postal fiscal','tel')}${campo('regimen_fiscal','Régimen fiscal (clave, p. ej. 612)','tel')}${campo('correo','Correo para recibir facturas','email')}
+    <div class="error" id="err" hidden></div><button class="btn primario" type="submit">Guardar perfil</button>
+    <p class="suave centro" style="margin-top:8px">Se guarda solo en este navegador.</p></form></div></div>`, 'perfil');
+  if (E.perfil) $('[data-atras]').onclick = pantallaInicio;
+  $('#btnajustes') && ($('#btnajustes').onclick = () => pantallaAjustes());
+  $('#btnc input').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const lbl = $('#btnc span'); lbl.innerHTML = '<span class="spinner"></span> Leyendo constancia...';
+    try {
+      const d = await leerConstancia(f);
+      const map = { rfc:'rfc', razon_social:'razon_social', codigo_postal:'codigo_postal', regimen_fiscal:'regimen_fiscal', correo:'correo' };
+      for (const [n, k] of Object.entries(map)) { const inp = $(`[name=${n}]`); inp.value = d[k]?.valor || ''; inp.closest('.campo').classList.toggle('revisar', (d[k]?.confianza ?? 1) < 0.8); }
+      lbl.textContent = 'Constancia leída: revisa y guarda';
+    } catch (err) { aviso(err.message, 5000); lbl.textContent = 'Leer constancia (PDF o foto)'; }
+  };
+  $('#f').onsubmit = async e => {
+    e.preventDefault(); const fd = new FormData(e.target);
+    const perfil = { rfc: fd.get('rfc').trim().toUpperCase(), razon_social: fd.get('razon_social').trim(), codigo_postal: fd.get('codigo_postal').trim(), regimen_fiscal: fd.get('regimen_fiscal').trim(), correo: fd.get('correo').trim(), uso_cfdi: 'G03' };
+    if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(perfil.rfc)) { $('#err').textContent = 'RFC con formato inválido'; $('#err').hidden = false; return; }
+    try { await BD.put('kv', perfil, 'perfil'); E.perfil = perfil; pantallaInicio(); }
+    catch (err) { $('#err').textContent = 'No se pudo guardar: ' + (err.message || err.code); $('#err').hidden = false; }
+  };
+}
+const PROMPT_CONSTANCIA = `Eres un extractor de la Constancia de Situación Fiscal del SAT (México). Devuelve SOLO un objeto JSON con esta forma exacta, sin texto adicional:
+{"rfc":{"valor":"","confianza":0},"razon_social":{"valor":"","confianza":0},"codigo_postal":{"valor":"","confianza":0},"regimen_fiscal":{"valor":"","confianza":0},"correo":{"valor":"","confianza":0}}
+- rfc: RFC del contribuyente. razon_social: para personas morales la Denominación/Razón Social; para personas físicas el nombre completo (nombre + apellidos), sin el régimen.
+- codigo_postal: CP del domicilio fiscal (5 dígitos). regimen_fiscal: clave de 3 dígitos del régimen (601, 612, 626...); si solo aparece el nombre, deduce la clave del catálogo c_RegimenFiscal. correo: correo registrado si aparece.
+- confianza: 0 a 1 por campo. Si no aparece, valor "" y confianza 0. No inventes.`;
+async function leerConstancia(f) {
+  if (f.type === 'application/pdf') {
+    let texto = '';
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+      for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) { const pg = await pdf.getPage(i); const c = await pg.getTextContent(); texto += c.items.map(x => x.str).join(' ') + '\n'; }
+    } catch (e) { throw new Error('No pude leer el PDF aquí; sube una foto o captura de pantalla de la primera página'); }
+    if (texto.trim().length < 50) throw new Error('El PDF no tiene texto legible; sube una foto de la primera página');
+    return gemini(PROMPT_CONSTANCIA + '\n\nTEXTO DE LA CONSTANCIA:\n' + texto.slice(0, 20000));
+  }
+  const img = await comprimir(f, 1600, 0.9);
+  return gemini(PROMPT_CONSTANCIA + '\n\nLa imagen adjunta es la constancia.', img);
+}
+
+// ---------- inicio ----------
+function pantallaInicio() {
+  render(`<div class="pantalla">${barra('Tickets', { acciones: `<button class="btn texto chico" id="bf" title="Facturas">${ico('factura')}</button><button class="btn texto chico" id="bp" title="Perfil">${ico('persona')}</button><button class="btn texto chico" id="ba" title="Ajustes">${ico('ajustes')}</button>` })}
+    <div class="contenido" id="lista"></div>
+    <div class="pie"><label class="btn primario" style="flex:3">${ico('camara')}Tomar foto<input type="file" accept="image/*" capture="environment" hidden id="cam"></label>
+    <label class="btn" style="flex:2">${ico('galeria')}Galería<input type="file" accept="image/*" hidden id="gal"></label></div></div>`, 'inicio');
+  $('#bf').onclick = () => pantallaFacturas(); $('#bp').onclick = pantallaPerfil; $('#ba').onclick = () => pantallaAjustes();
+  $('#cam').onchange = $('#gal').onchange = e => nuevoTicket(e.target.files[0]);
+  pintarLista();
+}
+function pintarLista() {
+  const el = $('#lista'); if (!el) return;
+  if (!E.tickets.length) { el.innerHTML = `<div class="vacio">${ico('ticket')}<span>Sin tickets todavía.<br>Toma la foto de un ticket para empezar.</span></div>`; return; }
+  el.innerHTML = E.tickets.map(t => { const [et, c, ic] = ESTADOS[t.estado] || ESTADOS.error; const nombre = t.comercio || 'Ticket'; const sub = t.motivo || (t.folio ? 'Folio ' + t.folio : 'Procesando');
+    return `<div class="card ticket" data-id="${t.id}"><div class="ico" style="background:color-mix(in srgb,${c} 14%,transparent);color:${c}">${ico(ic)}</div><div class="cuerpo"><div class="fila"><span class="nombre">${esc(nombre)}</span><span class="total">${t.total != null ? fmt.format(+t.total) : ''}</span></div><div class="fila" style="justify-content:flex-start"><span class="estado" style="color:${c}">${et}</span><span class="sub">${esc(sub)}</span></div></div></div>`; }).join('');
+  el.querySelectorAll('.ticket').forEach(c => c.onclick = () => pantallaTicket(E.tickets.find(t => t.id === c.dataset.id)));
+}
+function comprimir(file, max, q) {
+  return new Promise((res, rej) => { const url = URL.createObjectURL(file); const im = new Image();
+    im.onload = () => { const s = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); c.toBlob(b => { URL.revokeObjectURL(url); b ? res(b) : rej(new Error('No se pudo procesar la imagen')); }, 'image/jpeg', q); };
+    im.onerror = () => rej(new Error('Imagen no válida')); im.src = url; });
+}
+
+// ---------- lectura del ticket ----------
+const PROMPT_TICKET = `Eres un extractor de datos de tickets de compra de México para facturación electrónica (CFDI). Analiza la imagen adjunta y devuelve SOLO un objeto JSON con esta forma exacta:
+{"es_ticket":true,"rfc_emisor":{"valor":"","confianza":0},"nombre_establecimiento":{"valor":"","confianza":0},"folio":{"valor":"","confianza":0},"sucursal":{"valor":"","confianza":0},"fecha_compra":{"valor":"","confianza":0},"subtotal":{"valor":"","confianza":0},"iva":{"valor":"","confianza":0},"total":{"valor":"","confianza":0},"url_facturacion":{"valor":"","confianza":0},"codigo_facturacion":{"valor":"","confianza":0}}
+Reglas: rfc_emisor = RFC del establecimiento (12 o 13 caracteres, mayúsculas). nombre_establecimiento = nombre comercial impreso. folio = el número que el portal de facturación pediría ("Ticket", "Folio", "No. de transacción", "Operación", "Referencia"), copiado exacto sin espacios. sucursal = número o nombre de tienda. fecha_compra en ISO 8601 (AAAA-MM-DDTHH:MM:SS; sin hora usa T00:00:00). subtotal, iva, total solo números con punto decimal. url_facturacion = la dirección web de facturación impresa en el ticket (p. ej. "factura.tienda.com" o una URL completa), si aparece. codigo_facturacion = clave o código de facturación impreso (distinto del folio), si aparece. confianza 0 a 1 por campo según legibilidad; si no aparece, valor "" y confianza 0. es_ticket=false si no es un ticket de compra. No inventes valores.`;
+const CAMPOS = ['rfc_emisor','nombre_establecimiento','folio','sucursal','fecha_compra','subtotal','iva','total','url_facturacion','codigo_facturacion'];
+async function nuevoTicket(f) {
+  if (!f) return;
+  const id = 't' + Date.now().toString(36);
+  const t = { id, estado: 'nuevo', creado: Date.now(), datos: {} };
+  E.tickets.unshift(t); pantallaInicio();
+  let img;
+  try {
+    img = await comprimir(f, 1600, 0.88);
+    t.imagen = id + '.jpg'; await BD.put('archivos', img, t.imagen); t.imagen_url = URL.createObjectURL(img);
+    const d = await gemini(PROMPT_TICKET, img);
+    if (d.es_ticket === false) throw new Error('La imagen no parece un ticket de compra');
+    for (const k of CAMPOS) t.datos[k] = { valor: String(d[k]?.valor ?? '').trim(), confianza: Number(d[k]?.confianza ?? 0) };
+    t.comercio = t.datos.nombre_establecimiento.valor || null; t.folio = t.datos.folio.valor.replace(/\s+/g, '') || null;
+    t.total = parseFloat(t.datos.total.valor.replace(/[^\d.]/g, '')) || null;
+    t.fecha = t.datos.fecha_compra.valor || null; t.rfc_emisor = t.datos.rfc_emisor.valor.toUpperCase() || null;
+    const portal = buscarPortal(t);
+    t.portal_url = portal || normalizaUrl(t.datos.url_facturacion.valor) || null;
+    const baja = ['folio','total'].some(k => t.datos[k].confianza < 0.8 || !t.datos[k].valor);
+    t.estado = baja ? 'revisar' : 'listo'; t.motivo = null;
+  } catch (err) { t.estado = 'error'; t.motivo = err.message; }
+  await guardarTicket(t);
+  if (E.pantalla === 'inicio') pintarLista();
+  if (t.estado !== 'error') pantallaTicket(t);
+}
+const normalizaUrl = u => { u = String(u || '').trim(); if (!u) return ''; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { new URL(u); return u; } catch { return ''; } };
+function claveComercio(t) { return t.rfc_emisor || normaliza(t.comercio).replace(/ /g, '-') || null; }
+function buscarPortal(t) { const k = claveComercio(t); if (k && E.portales[k]) return E.portales[k].url; const n = normaliza(t.comercio); if (!n) return null; for (const p of Object.values(E.portales)) if (p.alias && p.alias.some(a => n.includes(a))) { t.portal_semilla = !p.verificado; return p.url; } return null; }
+async function guardarPortal(t, url) { const k = claveComercio(t); if (!k) return; const p = { clave: k, url, nombre: t.comercio || k, alias: [normaliza(t.comercio)].filter(Boolean), verificado: true, actualizado: Date.now() }; E.portales[k] = p; try { await BD.put('portales', p); } catch {} }
+async function guardarTicket(t) { const { imagen_url, factura, ...body } = t; body.factura = factura ? (({ xml_url, pdf_url, ...f }) => f)(factura) : null; try { await BD.put('tickets', JSON.parse(JSON.stringify(body))); } catch (e) { aviso('No se pudo guardar: ' + (e.message || e.code), 4000); } }
+
+// ---------- detalle del ticket: asistente de facturación ----------
+function pantallaTicket(t) {
+  if (!t) return;
+  const p = E.perfil; const d = t.datos || {};
+  const dato = (k, v, clave) => v ? `<div class="dato"><span class="k">${k}</span><span class="v ${clave && d[clave] && d[clave].confianza < 0.8 ? 'baja' : ''}">${esc(v)}</span><button class="cp" data-cp="${esc(v)}">${ico('copiar')}</button></div>` : '';
+  const fechaL = t.fecha ? t.fecha.replace('T', ' ').slice(0, 16) : '';
+  const portal = t.portal_url;
+  const yaFact = t.estado === 'facturado';
+  render(`<div class="pantalla">${barra(t.comercio || 'Ticket', { atras: true, acciones: `<button class="btn texto chico" id="borrar" title="Eliminar">${ico('alerta')}</button>` })}<div class="contenido">
+    ${t.imagen_url ? `<img class="foto" src="${t.imagen_url}" alt="Ticket">` : ''}
+    ${t.estado === 'revisar' ? `<div class="nota">Los datos en ámbar se leyeron con poca seguridad. Tócalos para corregirlos antes de facturar.</div>` : ''}
+    <div class="card" id="datos">
+      ${dato('Folio', t.folio, 'folio')}${dato('Total', t.total != null ? t.total.toFixed(2) : '', 'total')}${dato('Fecha', fechaL, 'fecha_compra')}${dato('Sucursal', d.sucursal?.valor, 'sucursal')}${dato('RFC emisor', t.rfc_emisor, 'rfc_emisor')}${dato('Código', d.codigo_facturacion?.valor, 'codigo_facturacion')}
+      <div class="fila" style="margin-top:8px"><button class="btn chico" id="editar">Corregir datos</button></div>
+    </div>
+    ${yaFact ? `<div class="card"><div class="fila"><span style="color:var(--ok);font-weight:600">${ico('check')} Facturado</span><span class="enlaces">${t.factura?.xml_url ? `<a href="${t.factura.xml_url}" target="_blank">XML</a>` : ''}${t.factura?.pdf_url ? `<a href="${t.factura.pdf_url}" target="_blank">PDF</a>` : ''}</span></div><div class="sub" style="margin-top:6px">${esc(t.factura?.uuid || '')}</div></div>` : `
+    <h3 style="margin-top:16px">Facturar en el portal</h3>
+    <div class="paso ${portal ? 'hecho' : ''}"><div class="n">1</div><div class="t">${portal ? `<a class="btn" href="${esc(portal)}" target="_blank" rel="noopener">${ico('enlace')}Abrir portal de ${esc(t.comercio || 'facturación')}</a><div class="suave" style="margin-top:4px">${esc(portal)}${t.portal_semilla ? ' · dirección sugerida: si no es la correcta, corrígela en Corregir datos' : ''}</div>` : `<div class="suave">No sé el portal de este comercio. Pega la dirección que viene en el ticket (se guarda para la próxima vez).</div><div class="fila" style="margin-top:6px"><input id="url" type="url" placeholder="https://"><button class="btn chico" id="guardarurl">Guardar</button></div>`}</div></div>
+    <div class="paso"><div class="n">2</div><div class="t">Llena el formulario del portal. Toca cualquier dato para copiarlo:
+      <div class="card" style="margin-top:8px">${dato('RFC', p.rfc)}${dato('Razón social', p.razon_social)}${dato('CP', p.codigo_postal)}${dato('Régimen', p.regimen_fiscal)}${dato('Uso CFDI', p.uso_cfdi || 'G03')}${dato('Correo', p.correo)}</div></div></div>
+    <div class="paso"><div class="n">3</div><div class="t">Cuando el portal te dé la factura, guárdala aquí:
+      <label class="btn" style="margin-top:8px">${ico('xml')}Subir XML (y PDF)<input type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" multiple hidden id="arch"></label>
+      <div class="suave" style="margin-top:6px">Si el portal la envía por correo, descárgala del correo y súbela aquí.</div></div></div>`}
+  </div></div>`, 'ticket');
+  $('[data-atras]').onclick = pantallaInicio;
+  $('#borrar').onclick = () => confirmarHoja('Eliminar este ticket', 'Se borra el ticket y su factura de tu cuenta.', async () => { try { await BD.del('tickets', t.id); for (const a of [t.imagen, t.factura?.xml, t.factura?.pdf].filter(Boolean)) await BD.del('archivos', a); E.tickets = E.tickets.filter(x => x.id !== t.id); pantallaInicio(); } catch (e) { aviso('No se pudo eliminar'); } });
+  document.querySelectorAll('[data-cp]').forEach(b => b.onclick = () => copiar(b.dataset.cp));
+  $('#editar').onclick = () => pantallaEditar(t);
+  const gu = $('#guardarurl'); if (gu) gu.onclick = async () => { const u = normalizaUrl($('#url').value); if (!u) { aviso('Dirección no válida'); return; } t.portal_url = u; await guardarPortal(t, u); await guardarTicket(t); pantallaTicket(t); };
+  const arch = $('#arch'); if (arch) arch.onchange = e => guardarFactura(t, [...e.target.files]);
+}
+function confirmarHoja(titulo, texto, ok) {
+  const h = document.createElement('div'); h.innerHTML = `<div class="fondo-hoja"></div><div class="hoja"><h3>${esc(titulo)}</h3><p class="suave">${esc(texto)}</p><button class="btn" id="no">Cancelar</button><div style="height:8px"></div><button class="btn primario" id="si">Confirmar</button></div>`;
+  document.body.appendChild(h); const cerrar = () => h.remove();
+  h.querySelector('.fondo-hoja').onclick = cerrar; h.querySelector('#no').onclick = cerrar; h.querySelector('#si').onclick = () => { cerrar(); ok(); };
+}
+function pantallaEditar(t) {
+  const d = t.datos || {}; const v = k => d[k]?.valor || '';
+  render(`<div class="pantalla">${barra('Corregir datos', { atras: true })}<div class="contenido">
+    ${t.imagen_url ? `<img class="foto" src="${t.imagen_url}" alt="Ticket">` : ''}
+    <form id="f" style="margin-top:12px">
+    <label class="campo"><span>Comercio</span><input name="comercio" value="${esc(t.comercio || '')}"></label>
+    <label class="campo"><span>RFC del comercio</span><input name="rfc_emisor" value="${esc(t.rfc_emisor || '')}"></label>
+    <label class="campo"><span>Folio / número de ticket</span><input name="folio" value="${esc(t.folio || '')}"></label>
+    <label class="campo"><span>Total</span><input name="total" inputmode="decimal" value="${t.total != null ? t.total.toFixed(2) : ''}"></label>
+    <label class="campo"><span>Fecha de compra</span><input name="fecha" type="datetime-local" value="${esc((t.fecha || '').slice(0, 16))}"></label>
+    <label class="campo"><span>Sucursal</span><input name="sucursal" value="${esc(v('sucursal'))}"></label>
+    <label class="campo"><span>Código de facturación</span><input name="codigo" value="${esc(v('codigo_facturacion'))}"></label>
+    <label class="campo"><span>Portal de facturación</span><input name="portal" type="url" value="${esc(t.portal_url || '')}"></label>
+    <button class="btn primario" type="submit">Guardar</button></form></div></div>`, 'editar');
+  $('[data-atras]').onclick = () => pantallaTicket(t);
+  $('#f').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target);
+    t.comercio = fd.get('comercio').trim() || null; t.rfc_emisor = fd.get('rfc_emisor').trim().toUpperCase() || null; t.folio = fd.get('folio').trim() || null;
+    t.total = parseFloat(fd.get('total')) || null; t.fecha = fd.get('fecha') || null; t.portal_url = normalizaUrl(fd.get('portal')) || null;
+    t.datos = { ...t.datos, sucursal: { valor: fd.get('sucursal').trim(), confianza: 1 }, codigo_facturacion: { valor: fd.get('codigo').trim(), confianza: 1 }, folio: { valor: t.folio || '', confianza: 1 }, total: { valor: t.total != null ? String(t.total) : '', confianza: 1 }, fecha_compra: { valor: t.fecha || '', confianza: 1 }, rfc_emisor: { valor: t.rfc_emisor || '', confianza: 1 } };
+    if (t.estado !== 'facturado') t.estado = (t.folio && t.total) ? 'listo' : 'revisar';
+    if (t.portal_url) await guardarPortal(t, t.portal_url);
+    await guardarTicket(t); pantallaTicket(t); };
+}
+
+// ---------- guardar la factura (XML + PDF) ----------
+function parsearCFDI(xml) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const root = doc.documentElement; if (!root || root.localName !== 'Comprobante') throw new Error('El archivo no es un CFDI');
+  const g = (el, ...ns) => { for (const n of ns) { const v = el?.getAttribute(n); if (v) return v; } return ''; };
+  const emisor = root.getElementsByTagNameNS('*', 'Emisor')[0], receptor = root.getElementsByTagNameNS('*', 'Receptor')[0], timbre = root.getElementsByTagNameNS('*', 'TimbreFiscalDigital')[0];
+  if (!timbre) throw new Error('El CFDI no está timbrado');
+  return { uuid: g(timbre, 'UUID').toUpperCase(), rfc_emisor: g(emisor, 'Rfc', 'rfc'), nombre_emisor: g(emisor, 'Nombre', 'nombre'), rfc_receptor: g(receptor, 'Rfc', 'rfc'), fecha: g(root, 'Fecha', 'fecha'), total: parseFloat(g(root, 'Total', 'total')), version: g(root, 'Version', 'version') };
+}
+async function guardarFactura(t, files) {
+  const xmlF = files.find(f => /\.xml$/i.test(f.name) || f.type.includes('xml')); const pdfF = files.find(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+  if (!xmlF) { aviso('Necesito el archivo XML de la factura', 4000); return; }
+  try {
+    const c = parsearCFDI(await xmlF.text());
+    if (E.perfil && c.rfc_receptor && c.rfc_receptor.toUpperCase() !== E.perfil.rfc) { aviso(`La factura salió a nombre de ${c.rfc_receptor}, no de tu RFC`, 6000); }
+    if (E.tickets.some(x => x.factura?.uuid === c.uuid && x.id !== t.id)) { aviso('Esta factura ya está registrada en otro ticket', 5000); return; }
+    const fac = { uuid: c.uuid, rfc_emisor: c.rfc_emisor, nombre_emisor: c.nombre_emisor, rfc_receptor: c.rfc_receptor, fecha: c.fecha, total: c.total, periodo: c.fecha.slice(0, 7), xml_nombre: c.uuid + '.xml', pdf_nombre: c.uuid + '.pdf' };
+    const bx = new Blob([await xmlF.arrayBuffer()], { type: 'application/xml' }); fac.xml = c.uuid + '.xml'; await BD.put('archivos', bx, fac.xml); fac.xml_url = URL.createObjectURL(bx);
+    if (pdfF) { const bp = new Blob([await pdfF.arrayBuffer()], { type: 'application/pdf' }); fac.pdf = c.uuid + '.pdf'; await BD.put('archivos', bp, fac.pdf); fac.pdf_url = URL.createObjectURL(bp); }
+    if (t.total != null && Math.abs(t.total - c.total) > 0.01) t.motivo = `El total del XML (${c.total.toFixed(2)}) no coincide con el ticket`; else t.motivo = null;
+    if (!t.comercio && c.nombre_emisor) t.comercio = c.nombre_emisor;
+    t.factura = fac; t.estado = 'facturado';
+    await guardarTicket(t); aviso('Factura guardada'); pantallaTicket(t);
+  } catch (e) { aviso(e.message || 'No se pudo leer el XML', 5000); }
+}
+
+// ---------- facturas por mes ----------
+function pantallaFacturas(periodo = new Date().toISOString().slice(0, 7)) {
+  const d = new Date(periodo + '-01T12:00:00'); const titulo = d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  const mover = n => pantallaFacturas(new Date(d.getFullYear(), d.getMonth() + n, 1, 12).toISOString().slice(0, 7));
+  const fs = E.tickets.filter(t => t.factura && t.factura.periodo === periodo);
+  const total = fs.reduce((a, t) => a + (t.factura.total || 0), 0);
+  render(`<div class="pantalla">${barra('Facturas', { atras: true })}<div class="contenido">
+    <div class="mes"><button id="ant">&#8249;</button><b>${titulo[0].toUpperCase() + titulo.slice(1)}</b><button id="sig">&#8250;</button></div>
+    <div class="card fila"><div style="flex:1"><div class="suave">${fs.length} facturas</div><div class="monto">${fmt.format(total)}</div></div>${fs.length ? `<button class="btn chico" id="zip">${ico('descarga')}ZIP para el contador</button>` : ''}</div>
+    ${fs.map(t => `<div class="card"><div class="fila"><span class="nombre">${esc(t.comercio || t.factura.nombre_emisor || t.factura.rfc_emisor)}</span><span class="total">${fmt.format(t.factura.total || 0)}</span></div><div class="sub">${esc(t.factura.uuid)}</div><div class="fila" style="margin-top:8px"><span class="suave">${esc(t.factura.fecha.slice(0, 10))}</span><span class="enlaces">${t.factura.xml_url ? `<a href="${t.factura.xml_url}" target="_blank">XML</a>` : ''}${t.factura.pdf_url ? `<a href="${t.factura.pdf_url}" target="_blank">PDF</a>` : ''}</span></div></div>`).join('') || `<div class="vacio">Sin facturas este mes</div>`}
+  </div></div>`, 'facturas');
+  $('[data-atras]').onclick = pantallaInicio; $('#ant').onclick = () => mover(-1); $('#sig').onclick = () => mover(1);
+  const z = $('#zip'); if (z) z.onclick = async () => { z.disabled = true; try {
+    const zip = new JSZip(); const carpeta = zip.folder(periodo);
+    for (const t of fs) { const sub = carpeta.folder(normaliza(t.comercio || t.factura.nombre_emisor || t.factura.rfc_emisor).replace(/ /g, '-') || 'sin-nombre');
+      for (const [k, nombre] of [[t.factura.xml, t.factura.xml_nombre], [t.factura.pdf, t.factura.pdf_nombre]]) if (k) { const b = await BD.get('archivos', k); if (b) sub.file(nombre, b); } }
+    descargarBlob(await zip.generateAsync({ type: 'blob' }), `facturas-${periodo}.zip`); aviso('ZIP generado');
+  } catch (e) { aviso('No se pudo generar el ZIP: ' + (e.message || e.code), 5000); } finally { z.disabled = false; } };
+}
+
+arrancar().catch(e => { render(`<div class="pantalla"><div class="vacio">${ico('alerta')}<b>No se pudo iniciar</b><span class="suave">${esc(e.message || e.code || e)}</span></div></div>`, 'sin'); });
+})();
+</script>
+</body>
+</html>
